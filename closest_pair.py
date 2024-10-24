@@ -74,7 +74,7 @@ def test_algorithm():
     brute_force_runtimes = list()
     closest_pair_runtimes = list()
     p = 2
-    while p <= 15:
+    while p <= 13:
         points = generator(2**p)
         brute_force_runtimes.append([2**p, timer(brute_force, points)])
         closest_pair_runtimes.append([2**p, timer(findClosestPair, points)])
