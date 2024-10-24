@@ -30,25 +30,40 @@ def brute_force(points):
 def findClosestPair(points):
     points = sorted(points, key=lambda point: point[0])
     points = np.array(points)
+    print("Array: ", points)
     return closestPair(points)
 
 def closestPair(points):
     if(len(points) == 2):
         distance = np.linalg.norm(points[1] - points[0])
         if(points[0][1] < points[1][1]):
-            return points
+            return distance, points
         else:
             Y = points
-            return Y[::-1]
+            return distance, Y[::-1]
     else:
         P_L = points[0 : len(points) // 2]
         P_R = points[len(points) // 2 : ]
-        YL = closestPair(P_L)
-        YR = closestPair(P_R)
-        print("YL: ", YL)
-        print("YR: ", YR)
+        d1, YL = closestPair(P_L)
+        d2, YR = closestPair(P_R)
         Y = np.concatenate((YL, YR), axis=0)
-        return Y
+        Y = Y[Y[:, 1].argsort()]
+        distance = np.min(np.array([d1, d2]))
+        vert_line = (P_L[len(P_L) - 1][0] + P_R[0][0]) / 2
+        S = list()
+        for i in range(len(Y)):
+            if(abs(Y[i][0] - vert_line) < distance):
+                S.append(Y[i])
+        S = np.array(S)
+        for i in range(len(S) - 1):
+            j = 1
+            while(i+j < len(S) and j <= 7):
+                print(f"i = {i} and j = {j}")
+                print(f"S = {np.linalg.norm(S[i] - S[i + j])}")
+                j += 1
+        print(f"S: {S}")
+
+        return distance, Y
 
 
 def timer(function, points):
@@ -74,5 +89,4 @@ def save(array, sort):
 
 n = sys.argv[1]
 array = generator(int(n))
-print(f"Array: {array}")
 print(f"Closest Pair: {findClosestPair(array)}")
