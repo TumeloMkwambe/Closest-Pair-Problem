@@ -27,6 +27,30 @@ def brute_force(points):
                 distance = curr
     return curr
 
+def findClosestPair(points):
+    points = sorted(points, key=lambda point: point[0])
+    points = np.array(points)
+    return closestPair(points)
+
+def closestPair(points):
+    if(len(points) == 2):
+        distance = np.linalg.norm(points[1] - points[0])
+        if(points[0][1] < points[1][1]):
+            return points
+        else:
+            Y = points
+            return Y[::-1]
+    else:
+        P_L = points[0 : len(points) // 2]
+        P_R = points[len(points) // 2 : ]
+        YL = closestPair(P_L)
+        YR = closestPair(P_R)
+        print("YL: ", YL)
+        print("YR: ", YR)
+        Y = np.concatenate((YL, YR), axis=0)
+        return Y
+
+
 def timer(function, points):
     start = time.time()
     function(points)
@@ -46,4 +70,9 @@ def test_algorithm():
 def save(array, sort):
     np.savetxt(sort, array, delimiter=',', header="input,time")
 
-save(test_algorithm(), "brute_force")
+#save(test_algorithm(), "brute_force")
+
+n = sys.argv[1]
+array = generator(int(n))
+print(f"Array: {array}")
+print(f"Closest Pair: {findClosestPair(array)}")
