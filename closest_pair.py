@@ -1,100 +1,90 @@
-import random
+import sys
 import math
 import time
-import matplotlib.pyplot as plt
+import random
 import numpy as np
 
-# Function to generate random points in a 2D plane
-def generate_points(n):
-    points = [(random.uniform(0, 1000), random.uniform(0, 1000)) for _ in range(n)]
-    return points
 
-# Brute force closest pair algorithm
-def brute_force_closest_pair(points):
-    min_distance = float('inf')
-    closest_pair = None
-    for i in range(len(points)):
-        for j in range(i + 1, len(points)):
-            distance = euclidean_distance(points[i], points[j])
-            if distance < min_distance:
-                min_distance = distance
-                closest_pair = (points[i], points[j])
-    return min_distance, closest_pair
+def generator(n):
+    List = list()
+    i = 0
+    while len(List) != n:
+        x = random.randint(0, n**2)
+        y = random.randint(0, n**2)
+        entry = (x, y)
+        if entry not in List:
+            List.append(entry)
+            i = i + 1
+    return List
 
-# Euclidean distance function
-def euclidean_distance(p1, p2):
-    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+def brute_force(points):
+    points = np.array(points)
+    distance = np.linalg.norm(points[1] - points[0])
+    for i in range(1, len(points) - 1, 1):
+        for j in range(1 + 1, len(points), 1):
+            curr = np.linalg.norm(points[i] - points[j])
+            if curr < distance:
+                distance = curr
+    return curr
 
-# Optimized closest pair algorithm using divide and conquer
-def closest_pair(points):
-    points.sort(key=lambda x: x[0])  # Sort points by x-coordinate
-    return closest_pair_recursive(points)
+def findClosestPair(points):
+    points = sorted(points, key=lambda point: point[0])
+    points = np.array(points)
+    return closestPair(points)
 
-def closest_pair_recursive(points):
-    if len(points) <= 3:
-        return brute_force_closest_pair(points)
-    
-    mid = len(points) // 2
-    mid_point = points[mid]
+def closestPair(points):
+    if(len(points) == 2): # If there are 2 points in the set of points
+        distance = np.linalg.norm(points[1] - points[0]) # Calculate d directly
 
-    left_closest = closest_pair_recursive(points[:mid])
-    right_closest = closest_pair_recursive(points[mid:])
+        if(points[0][1] < points[1][1]): # Arrange the two points into a list Y sorted on y coordinate
+            return distance, points
+        else:
+            Y = points
+            return distance, Y[::-1]
+    else:
+        P_L = points[0 : len(points) // 2] # Divide the set into two equal-sized parts PL and PR
+        P_R = points[len(points) // 2 : ]
+        d1, YL = closestPair(P_L)
+        d2, YR = closestPair(P_R)
+        Y = np.concatenate((YL, YR), axis=0) # Merge the two sorted lists YL and YR into one sorted list Y
+        Y = Y[Y[:, 1].argsort()]
+        distance = np.min(np.array([d1, d2]))
+        vert_line = (P_L[len(P_L) - 1][0] + P_R[0][0]) / 2
+        S = list()
+        for i in range(len(Y)):
+            if(abs(Y[i][0] - vert_line) < distance): # Let S be the points in Y which are in the strip
+                S.append(Y[i]) 
+        S = np.array(S)
+        for i in range(len(S) - 1):
+            j = 1
+            while(i+j < len(S) and j <= 7):
+                if(np.linalg.norm(S[i] - S[i + j]) < distance):
+                    distance = np.linalg.norm(S[i] - S[i + j])
+                j += 1
 
-    min_closest = min(left_closest, right_closest, key=lambda x: x[0])
+        return distance, Y
 
-    # Consider points near the middle strip
-    strip = [point for point in points if abs(point[0] - mid_point[0]) < min_closest[0]]
-    strip.sort(key=lambda x: x[1])  # Sort by y-coordinate
+def timer(function, points):
+    start = time.time()
+    function(points)
+    stop = time.time() - start
+    return stop
 
-    for i in range(len(strip)):
-        for j in range(i + 1, len(strip)):
-            if strip[j][1] - strip[i][1] > min_closest[0]:
-                break
-            distance = euclidean_distance(strip[i], strip[j])
-            if distance < min_closest[0]:
-                min_closest = (distance, (strip[i], strip[j]))
+def test_algorithm():
+    brute_force_runtimes = list()
+    closest_pair_runtimes = list()
+    p = 2
+    while p <= 13:
+        points = generator(2**p)
+        brute_force_runtimes.append([p, timer(brute_force, points)])
+        closest_pair_runtimes.append([p, timer(findClosestPair, points)])
+        p += 1
+    return brute_force_runtimes, closest_pair_runtimes
 
-    return min_closest
+def save(array, sort):
+    np.savetxt(sort, array, delimiter=',', header="input,time")
 
-# Function to time an algorithm
-def time_algorithm(algorithm, points):
-    start_time = time.time()
-    result = algorithm(points)
-    end_time = time.time()
-    return end_time - start_time, result
+brute_force_runtimes, closest_pair_runtimes = test_algorithm()
 
-# Function to run experiments and plot graphs
-def run_experiments():
-    sizes = [2**p for p in range(2, 12)]  # n = 2^p where p ranges from 2 to 11
-    brute_force_times = []
-    optimized_times = []
-
-    for n in sizes:
-        points = generate_points(n)
-        
-        # Time brute force approach
-        bf_time, _ = time_algorithm(brute_force_closest_pair, points)
-        brute_force_times.append(bf_time)
-        
-        # Time optimized divide and conquer approach
-        opt_time, _ = time_algorithm(closest_pair, points)
-        optimized_times.append(opt_time)
-
-        print(f"n = {n}: Brute force time = {bf_time:.5f}s, Optimized time = {opt_time:.5f}s")
-
-    # Plotting the results
-    plt.figure(figsize=(10, 6))
-    plt.plot(sizes, brute_force_times, label="Brute Force", marker='o')
-    plt.plot(sizes, optimized_times, label="Divide and Conquer", marker='o')
-    plt.title('Runtime Comparison: Brute Force vs Optimized Closest Pair Algorithm')
-    plt.xlabel('Number of Points (n)')
-    plt.ylabel('Time (seconds)')
-    plt.xscale('log', base=2)
-    plt.yscale('log')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-# Run the experiment and plot the graph
-if __name__ == "__main__":
-    run_experiments()
+save(brute_force_runtimes, "brute_force.csv")
+save(closest_pair_runtimes, "closest_pair.csv")
